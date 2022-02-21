@@ -2,16 +2,30 @@ import React, { useState } from "react";
 import { DndContext } from "@dnd-kit/core";
 import { useDroppable } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
+import { nanoid } from "nanoid";
 
 export default function App() {
   const [isDropped, setIsDropped] = useState(false);
   const draggableMarkup = <Draggable>Drag me</Draggable>;
 
+  const [categories, setCategories] = useState(["To Do", "Doing", "Done"]);
+
   return (
-    <DndContext onDragEnd={handleDragEnd}>
-      Test
+    <DndContext
+      onDragOver={(e: any) => {
+        console.log(e);
+      }}
+      onDragStart={(e: any) => {
+        console.log("Start");
+      }}
+      onDragEnd={handleDragEnd}
+    >
       {!isDropped ? draggableMarkup : null}
-      <Droppable>{isDropped ? draggableMarkup : "Drop here"}</Droppable>
+      <div className="flex">
+        {categories.map((item) => {
+          return <Sector name={item} />;
+        })}
+      </div>
     </DndContext>
   );
 
@@ -22,17 +36,40 @@ export default function App() {
   }
 }
 
-function Droppable(props: any) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: "droppable",
-  });
-  const style = {
-    color: isOver ? "green" : undefined,
-  };
+interface SectorProps {
+  name: string;
+}
+
+interface ICard {
+  id: string;
+}
+
+function Sector(props: SectorProps) {
+  const [cards, setCards] = useState<Array<ICard>>([]);
 
   return (
-    <div ref={setNodeRef} style={style}>
-      {props.children}
+    <Droppable id={props.name}>
+      <div className="w-64 h-64 bg-blue-500 m-4"></div>
+    </Droppable>
+  );
+}
+
+function Droppable(props: any) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: props.id,
+  });
+
+  return (
+    <div className="transition-all p-8" ref={setNodeRef}>
+      <div
+        className={
+          isOver
+            ? "transition-all bg-green-300 p-4"
+            : "transition-all bg-white p-4"
+        }
+      >
+        {props.children}
+      </div>
     </div>
   );
 }
