@@ -22,8 +22,9 @@ default: &default
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 development:
-  <<: *default
-  database: back_end_development
+  url: postgresql://192.168.0.165/
+  username: postgres
+  password: <%= ENV.fetch("PG_PASSWORD") %>
 
   # The specified database role being used to connect to postgres.
   # To create additional roles in postgres see `$ createuser --help`.
