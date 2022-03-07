@@ -1,4 +1,9 @@
-import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  DragOverlay,
+} from "@dnd-kit/core";
 import { nanoid } from "nanoid";
 import React, { useEffect, useState } from "react";
 
@@ -14,6 +19,12 @@ export default function App() {
     },
     { name: "To Do", id: nanoid(), items: [] },
   ]);
+
+  const [lastKnownCategories, setLastKnownCategories] = useState<
+    Array<ICategory>
+  >([]);
+
+  const [info, setInfo] = useState("");
 
   // ran every time the user is done dragging
   const onDragEnd = (e: any) => {
@@ -40,6 +51,11 @@ export default function App() {
     }
   };
 
+  const onDragStart = (e: any) => {
+    setLastKnownCategories(categories);
+    setInfo(e.active.id);
+  };
+
   const findById = (id: string) => {
     for (let index = 0; index < categories.length; index++) {
       const category = categories[index];
@@ -63,8 +79,26 @@ export default function App() {
     return [-1];
   };
 
+  const onDragOver = (e: any) => {
+    let cloneCategories = categories.slice(0);
+    let item = findById(e.active.id);
+
+    if (item[0] !== -1) {
+      let test = cloneCategories[item[0]].items.splice(item[1], 1)[0];
+      setCategories(cloneCategories);
+    }
+  };
+
+  const onDragCancel = () => {
+    setCategories(lastKnownCategories);
+  };
+
   return (
-    <DndContext onDragEnd={onDragEnd}>
+    <DndContext
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragCancel={onDragCancel}
+    >
       <div className="flex">
         {categories.map((category) => {
           return (
@@ -72,9 +106,13 @@ export default function App() {
               <div className="w-64 h-64">
                 {category.items.map((item) => {
                   return (
-                    <Draggable id={item.id}>
-                      <Task>{item.title}</Task>
-                    </Draggable>
+                    <>
+                      <Droppable id={"place0" + item.id}></Droppable>
+                      <Draggable id={item.id}>
+                        <Task>{item.id}</Task>
+                      </Draggable>
+                      <Droppable id={"place1" + item.id}></Droppable>
+                    </>
                   );
                 })}
               </div>
@@ -82,6 +120,9 @@ export default function App() {
           );
         })}
       </div>
+      <DragOverlay style={{ cursor: "pointer" }}>
+        <Task>{info}</Task>
+      </DragOverlay>
     </DndContext>
   );
 }
@@ -133,17 +174,42 @@ function Category(props: ICategory) {
   let baseClass = "transition-all p-4";
 
   return (
-    <div className="m-4">
-      <div>
-        <h1 className="text-center font-bold p-2 bg-red-100">{props.name}</h1>
-      </div>
-      <div className="transition-all bg-gray-100 rounded-b" ref={setNodeRef}>
-        <div
-          className={isOver ? `${baseClass} bg-blue-100 rounded` : baseClass}
-        >
-          {props.children}
+    <Draggable id={id}>
+      <div className="m-4">
+        <div>
+          <h1 className="text-center font-bold p-2 bg-red-100">{props.name}</h1>
+        </div>
+        <div className="transition-all bg-gray-100 rounded-b" ref={setNodeRef}>
+          <div
+            className={isOver ? `${baseClass} bg-blue-100 rounded` : baseClass}
+          >
+            {props.children}
+          </div>
         </div>
       </div>
+    </Draggable>
+  );
+}
+
+function Droppable(props: any) {
+  const { isOver, setNodeRef, ...test } = useDroppable({
+    id: props.id,
+  });
+
+  let style = "h-2";
+
+  if (isOver) {
+    if (test.active && test.over) {
+      if (props.id === test.active.id || props.id.slice(6) === test.active.id) {
+      } else {
+        style = "h-2 bg-gray-300 rounded";
+      }
+    }
+  }
+
+  return (
+    <div className={style} ref={setNodeRef}>
+      {props.children}
     </div>
   );
 }
@@ -160,7 +226,7 @@ function Draggable(props: any) {
 
   return (
     <div
-      className="mb-2"
+      className="my-1"
       ref={setNodeRef}
       style={style}
       {...listeners}
